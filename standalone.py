@@ -26,6 +26,19 @@ from pathlib import Path
 
 
 # ---------------------------------------------------------------------------
+# Windowed-mode stdio guard: PyInstaller windowed builds on Windows ship
+# with `sys.stdout` and `sys.stderr` set to `None`, so the very first
+# `print(...)` raises AttributeError and the app dies silently. uvicorn
+# also writes to stderr on startup, which would explode the same way.
+# Redirect both to /dev/null (or the equivalent) so writes are no-ops.
+# ---------------------------------------------------------------------------
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w", encoding="utf-8")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w", encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
 # Crash logging: if anything explodes before we have a console (or pywebview
 # crashes silently), append the traceback to a file the user can find.
 # ---------------------------------------------------------------------------
