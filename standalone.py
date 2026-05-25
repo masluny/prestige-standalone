@@ -337,13 +337,25 @@ def main() -> None:
     # the patched __init__ catches it.
     _patch_cocoa_titlebar()
 
-    # Prefer the pre-rendered squircle for the Dock running-icon. pywebview
-    # sets NSApp.applicationIconImage from this file, which is what the Dock
-    # shows while the app is alive (overriding the bundle .icns). Without
-    # the squircle here the Dock icon flips to a square when the app is open.
-    squircle = ROOT / "build_assets" / "Prestige_icon_1024.png"
-    icon = squircle if squircle.exists() else (
-        ROOT / "webapp" / "static" / "logo.png")
+    # Per-platform window icon for `webview.start(icon=...)`:
+    #   macOS   -> pass our squircle PNG; pywebview/NSApp.setApplicationIconImage
+    #              uses it for the Dock running-icon (so the live Dock icon
+    #              matches the bundle .icns instead of flipping to a square)
+    #   Windows -> pass NOTHING; pywebview tries to convert the file to a
+    #              System.Drawing.Icon which only accepts .ico and CRASHES
+    #              on PNG. The window still inherits the .exe's embedded
+    #              icon (set in the spec via icon=Prestige.ico), which IS
+    #              already our squircle.
+    #   Linux   -> pass NOTHING; pywebview's GTK backend gets the icon from
+    #              the .desktop file or window manager.
+    icon_arg = None
+    if sys.platform == "darwin":
+        squircle = ROOT / "build_assets" / "Prestige_icon_1024.png"
+        png = squircle if squircle.exists() else (
+            ROOT / "webapp" / "static" / "logo.png")
+        if png.exists():
+            icon_arg = str(png)
+
     webview.create_window(
         "Prestige - OWL ontology editor",
         url=url,
@@ -354,8 +366,7 @@ def main() -> None:
     )
     # `webview.start()` blocks until the window is closed by the user.
     try:
-        webview.start(icon=str(icon) if icon.exists() else None,
-                      private_mode=False)
+        webview.start(icon=icon_arg, private_mode=False)
     except TypeError:
         # Older pywebview versions don't accept the icon argument here.
         webview.start(private_mode=False)
