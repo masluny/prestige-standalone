@@ -128,12 +128,12 @@ app = BUNDLE(
     name="Prestige.app",
     icon=str(ROOT / "build_assets" / "Prestige.icns"),
     bundle_identifier="com.prestige.ontologyeditor",
-    version="1.1.9",
+    version="1.1.10",
     info_plist={
         "CFBundleName":              "Prestige",
         "CFBundleDisplayName":       "Prestige",
-        "CFBundleShortVersionString": "1.1.9",
-        "CFBundleVersion":           "1.1.9",
+        "CFBundleShortVersionString": "1.1.10",
+        "CFBundleVersion":           "1.1.10",
         "NSHighResolutionCapable":   True,
         "NSRequiresAquaSystemAppearance": False,   # respect dark mode
         "LSMinimumSystemVersion":    "11.0",

@@ -88,10 +88,11 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    # DEBUG: console=True on Windows/Linux so any Python crash shows in a
-    # visible terminal window (instead of silently disappearing with
-    # console=False). Flip back to False once the app launches cleanly.
-    console=True,
+    # Windowed app — no terminal pop-up. Any crashes still get written
+    # to `%APPDATA%\Prestige\prestige_crash.log` (Windows),
+    # `~/.local/share/Prestige/prestige_crash.log` (Linux) via the
+    # `_setup_crash_log` hook in standalone.py.
+    console=False,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
