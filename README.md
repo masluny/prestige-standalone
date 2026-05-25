@@ -65,10 +65,36 @@ Bundle size is ~32 MB (Python + FastAPI + uvicorn + owlready2 + pywebview).
 
 ## 3. Optional system tools
 
-| For                          | Install                                    |
-|------------------------------|--------------------------------------------|
-| HermiT / Pellet reasoning    | `brew install --cask temurin`              |
-| Graph view                   | `brew install graphviz`                    |
+| For                          | macOS install                              | Windows / Linux |
+|------------------------------|--------------------------------------------|-----------------|
+| HermiT / Pellet reasoning    | `brew install --cask temurin@25`           | See **Java requirement** below |
+| Graph view (Graphviz)        | `brew install graphviz`                    | Download from [graphviz.org](https://graphviz.org/download/) |
+
+### ⚠️ Java version requirement for Pellet reasoner
+
+**Pellet needs Java 25 or newer.** The Jena RDF library bundled with
+owlready2's Pellet distribution uses class file version 69.0, which only
+JVM ≥ 25 can load. **Older Javas (8, 11, 17, 21) will crash Pellet** with:
+
+```
+java.lang.UnsupportedClassVersionError: org/apache/jena/riot/lang/LangRDFXML
+  has been compiled by a more recent version of the Java Runtime
+  (class file version 69.0), this version of the Java Runtime only
+  recognizes class file versions up to ...
+```
+
+HermiT, BORN and graph rendering work with **any** Java (or none).
+
+**Install Java 25** (free LTS) from Eclipse Adoptium:
+
+- **Windows**: <https://adoptium.net/temurin/releases/?version=25&os=windows&arch=x64&package=jdk> (download the `.msi`)
+- **macOS** (Apple Silicon): `brew install --cask temurin@25` or download `.pkg` from Adoptium
+- **macOS** (Intel): `brew install --cask temurin@25`
+- **Linux**: `sudo apt install temurin-25-jdk` (with the Adoptium apt repo), or download `.tar.gz`
+
+After installing, in Prestige open **Settings (⚙) → External tools** and
+make sure `java path` points at the new install (Detect auto-finds it, or
+type the absolute path like `C:\Program Files\Eclipse Adoptium\jdk-25.X.X-hotspot\bin\java.exe`).
 
 On first load the editor asks you to **upload an OWL file** — drop it on the
 splash screen or click to pick. The file is stored next to the project and

@@ -825,9 +825,27 @@ def api_reason(body: ReasonIn | None = None):
     except reasoner.ReasonerUnavailable as exc:
         raise HTTPException(400, str(exc))
     except Exception as exc:
-        # Any other reasoner crash (e.g. owlready2 throws on Windows Pellet)
-        # gets the full traceback returned so the user can paste it back
-        # to us. Without this the UI just sees a bare 500.
+        # Friendly hint for the one specific Java version mismatch users
+        # hit most often: owlready2's bundled Pellet/Jena needs Java >= 25
+        # (class file version 69.0). Anything older crashes with
+        # UnsupportedClassVersionError.
+        msg = str(exc)
+        if "UnsupportedClassVersionError" in msg or "class file version 69" in msg:
+            raise HTTPException(
+                400,
+                "%s needs Java 25 or newer. Your installed Java is too old "
+                "(the bundled Jena RDF library requires class file version "
+                "69.0, available only in JVM ≥ 25).\n\n"
+                "Fix:\n"
+                "  1. Install Java 25 from https://adoptium.net/temurin/releases/?version=25\n"
+                "  2. Restart Prestige\n"
+                "  3. Settings (⚙) → External tools → set 'java path' "
+                "to the new install if it isn't picked up automatically.\n\n"
+                "HermiT and BORN work with any Java (or none)."
+                % name.capitalize())
+        # Any other reasoner crash gets the full traceback returned so the
+        # user can paste it back to us. Without this the UI just sees a
+        # bare 500.
         raise HTTPException(
             500,
             "%s reasoner crashed: %s\n\n%s"

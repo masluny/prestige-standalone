@@ -397,10 +397,13 @@ def main() -> None:
         background_color="#161a22",
         js_api=_JSApi(),
     )
-    # Enable DevTools so users can press F12 (Windows/Linux) or
-    # right-click -> Inspect (macOS) to debug network requests, see
-    # console.log output etc. Useful when AI / fetch calls misbehave.
-    debug_mode = os.environ.get("PRESTIGE_DEBUG", "1") == "1"
+    # DevTools (F12) are OFF by default for end users. To turn them on
+    # for debugging (network inspector, console.log, etc.), launch the
+    # app with the env var set:
+    #     PRESTIGE_DEBUG=1 open Prestige.app          (macOS)
+    #     set PRESTIGE_DEBUG=1 && Prestige.exe        (Windows cmd)
+    #     $env:PRESTIGE_DEBUG=1; .\Prestige.exe       (Windows PowerShell)
+    debug_mode = os.environ.get("PRESTIGE_DEBUG", "0") == "1"
 
     # `webview.start()` blocks until the window is closed by the user.
     try:
