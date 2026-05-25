@@ -284,7 +284,19 @@ const ai = {
       const msg = data?.error?.message || `HTTP ${r.status}`;
       throw new Error(msg);
     }
-    return data.choices?.[0]?.message?.content || "(empty response)";
+    // Sometimes OpenRouter returns 200 OK but with an error in the body
+    // (e.g. no credits, invalid model, rate-limit). Surface that instead
+    // of just showing "(empty response)".
+    if (data?.error) {
+      const e = data.error;
+      throw new Error(e.message || JSON.stringify(e));
+    }
+    const content = data.choices?.[0]?.message?.content;
+    if (content) return content;
+    // Empty content but no explicit error - dump the whole response so the
+    // user can see what OpenRouter actually said.
+    console.log("[AI] empty content, full response:", data);
+    return "(empty response - raw: " + JSON.stringify(data).slice(0, 500) + ")";
   },
 };
 

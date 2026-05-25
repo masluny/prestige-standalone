@@ -39,6 +39,26 @@ if sys.stderr is None:
 
 
 # ---------------------------------------------------------------------------
+# Windows: hide the cmd window that every subprocess.Popen opens by default.
+# Without this every Java call (HermiT, Pellet, java -version) and every
+# Graphviz `dot` call flashes a brief console window over our GUI - looks
+# unprofessional and steals focus.
+# ---------------------------------------------------------------------------
+if sys.platform.startswith("win"):
+    import subprocess as _sub
+    _CREATE_NO_WINDOW = 0x08000000        # Windows CreateProcess flag
+    _orig_Popen = _sub.Popen
+
+    class _NoConsolePopen(_orig_Popen):
+        def __init__(self, *args, **kwargs):
+            cf = kwargs.get("creationflags", 0) | _CREATE_NO_WINDOW
+            kwargs["creationflags"] = cf
+            super().__init__(*args, **kwargs)
+
+    _sub.Popen = _NoConsolePopen
+
+
+# ---------------------------------------------------------------------------
 # Crash logging: if anything explodes before we have a console (or pywebview
 # crashes silently), append the traceback to a file the user can find.
 # ---------------------------------------------------------------------------
@@ -377,12 +397,20 @@ def main() -> None:
         background_color="#161a22",
         js_api=_JSApi(),
     )
+    # Enable DevTools so users can press F12 (Windows/Linux) or
+    # right-click -> Inspect (macOS) to debug network requests, see
+    # console.log output etc. Useful when AI / fetch calls misbehave.
+    debug_mode = os.environ.get("PRESTIGE_DEBUG", "1") == "1"
+
     # `webview.start()` blocks until the window is closed by the user.
     try:
-        webview.start(icon=icon_arg, private_mode=False)
+        webview.start(icon=icon_arg, debug=debug_mode, private_mode=False)
     except TypeError:
         # Older pywebview versions don't accept the icon argument here.
-        webview.start(private_mode=False)
+        try:
+            webview.start(debug=debug_mode, private_mode=False)
+        except TypeError:
+            webview.start(private_mode=False)
 
 
 if __name__ == "__main__":
