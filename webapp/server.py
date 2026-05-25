@@ -803,6 +803,7 @@ class ReasonIn(BaseModel):
 
 @app.post("/api/reason")
 def api_reason(body: ReasonIn | None = None):
+    import traceback as _tb
     name = (body.name if body else "hermit").lower()
     try:
         if name == "hermit":
@@ -819,8 +820,18 @@ def api_reason(body: ReasonIn | None = None):
                     "first (it makes one next to the loaded ontology)." % path)
             return reasoner.run_reasoner_born(path)
         raise HTTPException(400, "Unknown reasoner '%s'." % name)
+    except HTTPException:
+        raise
     except reasoner.ReasonerUnavailable as exc:
         raise HTTPException(400, str(exc))
+    except Exception as exc:
+        # Any other reasoner crash (e.g. owlready2 throws on Windows Pellet)
+        # gets the full traceback returned so the user can paste it back
+        # to us. Without this the UI just sees a bare 500.
+        raise HTTPException(
+            500,
+            "%s reasoner crashed: %s\n\n%s"
+            % (name.capitalize(), exc, _tb.format_exc()))
 
 
 def _born_path_for(owl_path: Optional[str]) -> Optional[str]:
