@@ -88,7 +88,10 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    console=False,                # windowed app, no terminal pop-up
+    # DEBUG: console=True on Windows/Linux so any Python crash shows in a
+    # visible terminal window (instead of silently disappearing with
+    # console=False). Flip back to False once the app launches cleanly.
+    console=True,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,

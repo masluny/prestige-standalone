@@ -21,7 +21,37 @@ import socket
 import sys
 import threading
 import time
+import traceback
 from pathlib import Path
+
+
+# ---------------------------------------------------------------------------
+# Crash logging: if anything explodes before we have a console (or pywebview
+# crashes silently), append the traceback to a file the user can find.
+# ---------------------------------------------------------------------------
+def _setup_crash_log(log_path: Path) -> None:
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    def excepthook(exc_type, exc, tb):
+        try:
+            with open(log_path, "a", encoding="utf-8") as fh:
+                fh.write("\n===== %s =====\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
+                fh.write("Platform: %s  Python: %s\n"
+                         % (sys.platform, sys.version.split()[0]))
+                traceback.print_exception(exc_type, exc, tb, file=fh)
+        except Exception:
+            pass
+        # Also print to stderr so the (now-visible) console shows it.
+        traceback.print_exception(exc_type, exc, tb)
+
+    sys.excepthook = excepthook
+    # Thread crashes don't go through sys.excepthook by default - hook the
+    # threading module's handler too.
+    try:
+        threading.excepthook = lambda args: excepthook(
+            args.exc_type, args.exc_value, args.exc_traceback)
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -70,6 +100,13 @@ def _pick_free_port() -> int:
 # ---------------------------------------------------------------------------
 ROOT = _resource_root()
 WORK = _writable_home()
+
+# Start crash logging immediately - anything that explodes after this point
+# (import errors, missing DLLs, pywebview crashes) gets written to:
+#   macOS:   ~/Library/Application Support/Prestige/prestige_crash.log
+#   Windows: %APPDATA%\Prestige\prestige_crash.log
+#   Linux:   ~/.local/share/Prestige/prestige_crash.log
+_setup_crash_log(WORK / "prestige_crash.log")
 
 # Make sibling packages importable both in dev mode and from the bundle.
 if str(ROOT) not in sys.path:
