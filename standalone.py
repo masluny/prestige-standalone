@@ -172,6 +172,8 @@ import core.examtools   # noqa: E402,F401
 import core.graphview   # noqa: E402,F401
 import core.reasoner    # noqa: E402,F401
 import core.runtime     # noqa: E402,F401
+import core.dl_query    # noqa: E402,F401
+import core.defence     # noqa: E402,F401
 
 HOST = "127.0.0.1"
 PORT = _pick_free_port()
