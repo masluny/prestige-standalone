@@ -143,11 +143,27 @@ def sign_coverage(model) -> Dict:
          stripped) overlap with the class's normalised tokens by ≥ half.
     """
     # Cache class info — tokens + raw string for code regex
+    #
+    # We accumulate text from the local name, *every* rdfs:label literal
+    # (any language tag), and rdfs:comment text. This matters because an
+    # ontology may carry the canonical English label first (e.g.
+    # "Traffic Signals Warning Sign") and a Spanish label second
+    # ("P-3 Semáforos"@es). model.get_label() only returns the first
+    # rdfs:label literal, so without scanning all annotations the P-code
+    # token never reaches the regex matcher.
     classes = []
     for qname in model.entities["Class"]:
         local = ofn.local_name(qname)
-        label = (model.get_label(qname) or "").strip()
-        raw   = local + " " + label
+        bits = [local]
+        for prop, value, _ax in model.annotations.get(qname, []):
+            if prop not in ("rdfs:label", "label", "rdfs:comment", "comment"):
+                continue
+            text = getattr(value, "lexical", None)
+            if text is None and hasattr(value, "render"):
+                text = value.render()
+            if text:
+                bits.append(text)
+        raw = " ".join(bits)
         classes.append({
             "qname":  qname,
             "tokens": set(_tokenize(raw)),
