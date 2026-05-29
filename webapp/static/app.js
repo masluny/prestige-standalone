@@ -2060,11 +2060,31 @@ async function openDLQueryModal() {
         lines.push(r.satisfiable ? "✓ Satisfiable" : "✗ NOT satisfiable (inconsistent)");
       } else {
         const items = r.results || [];
+        // MTSD label classes follow the Mapillary naming pattern
+        // `regulatory--foo--g1`, `warning--bar--g2`, `information--baz--g3`,
+        // `complementary--qux--g4`. Split them off so the user can spot the
+        // dataset-aligned signs at a glance — that's what the project defence
+        // rehearsal asks for.
+        const isMtsd = (q) => /:(regulatory|warning|information|complementary)--/.test(q);
+        const concepts = items.filter(q => !isMtsd(q));
+        const mtsd     = items.filter(q =>  isMtsd(q));
         lines.push(`Results (${items.length}):`);
-        if (items.length) {
-          for (const q of items) lines.push("  " + q);
-        } else {
+        if (!items.length) {
           lines.push("  (none)");
+        } else {
+          lines.push(`  Sign concept classes (${concepts.length}):`);
+          if (concepts.length) {
+            for (const q of concepts) lines.push("    " + q);
+          } else {
+            lines.push("    (none)");
+          }
+          lines.push("");
+          lines.push(`  MTSD dataset labels (${mtsd.length}):`);
+          if (mtsd.length) {
+            for (const q of mtsd) lines.push("    " + q);
+          } else {
+            lines.push("    (none)");
+          }
         }
       }
       lastText = lines.join("\n");

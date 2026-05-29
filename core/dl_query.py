@@ -314,10 +314,22 @@ def run_query(model, expression, query_type="subclasses",
     owl, world, onto, ents, skipped = _build_world(model)
     expr = parse_expression(expression, onto, world)
 
-    # Fast path: bare named class — no reasoner needed for asserted info.
     is_named = isinstance(expr, owl.ThingClass)
 
-    out = {"reasoner": reasoner_name.capitalize() if not is_named else "(asserted)",
+    # Decide whether the reasoner has to run. Superclasses and equivalents
+    # of a NAMED class can be answered from the asserted axioms alone, but
+    # `subclasses`, `instances` and `satisfiable` against a named class
+    # whose equivalent_to is a class expression (e.g. `SymbolFreeSign ≡
+    # RoadSign ⊓ (hasSymbol max 0 SymbolRoadSign)`) can only be answered
+    # AFTER classification. So we run the reasoner whenever inference can
+    # add edges to the result — which is always except for the cheap two.
+    needs_reasoner = (
+        not is_named
+        or query_type in ("subclasses", "instances", "satisfiable")
+    )
+
+    out = {"reasoner": (reasoner_name.capitalize() if needs_reasoner
+                        else "(asserted)"),
            "skipped": skipped, "type": query_type, "expression": expression}
 
     if is_named:
@@ -327,8 +339,12 @@ def run_query(model, expression, query_type="subclasses",
             TempClass = owl.types.new_class(
                 "__DLQuery_Temp__", (owl.Thing,))
             TempClass.equivalent_to = [expr]
-        _run_sync_reasoner(owl, world, onto, reasoner_name=reasoner_name)
         target = TempClass
+
+    if needs_reasoner:
+        _run_sync_reasoner(owl, world, onto, reasoner_name=reasoner_name)
+        if not is_named:
+            target = TempClass
 
     def collect_iris(items):
         out_names = []
@@ -357,9 +373,22 @@ def run_query(model, expression, query_type="subclasses",
         # `descendants()` reads asserted + inferred (post-sync_reasoner).
         # For a complex expression we ALSO query subclass_of so the
         # reasoner's freshly-inferred edges are picked up.
+        #
+        # Important: owlready2's `descendants()` walks only the asserted
+        # subclass tree — it does NOT follow equivalence edges. So if the
+        # reasoner discovered `TempClass ≡ SymbolFreeSign`, querying
+        # `TempClass.descendants()` returns [] even though SymbolFreeSign
+        # has 25 descendants. We bridge that gap by also collecting the
+        # descendants of every class HermiT made equivalent to `target`.
         items = set(target.descendants(include_self=False))
         try:
             items.update(world.search(subclass_of=target))
+        except Exception:
+            pass
+        try:
+            for eq in target.equivalent_to:
+                if isinstance(eq, owl.ThingClass) and eq is not target:
+                    items.update(eq.descendants(include_self=True))
         except Exception:
             pass
         out["results"] = collect_iris(items)
