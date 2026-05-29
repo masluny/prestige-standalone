@@ -685,8 +685,9 @@ function modal({title, content, submitLabel="OK", cancelLabel="Cancel",
 
 // ----- form helpers ---------------------------------------------------
 
-function intro(text) {
-  const d = document.createElement("div"); d.className = "intro"; d.textContent = text;
+function intro(text, {html = false} = {}) {
+  const d = document.createElement("div"); d.className = "intro";
+  if (html) { d.innerHTML = text; } else { d.textContent = text; }
   return d;
 }
 function textField({label, value="", placeholder="", list=null, multiline=false, rows=3}) {
@@ -2016,9 +2017,11 @@ async function openDLQueryModal() {
   content.appendChild(intro(
     "Type a Description-Logic class expression in Manchester syntax. " +
     "Supports: <code>and</code>, <code>or</code>, <code>not</code>, " +
-    "<code>some</code>, <code>only</code>, <code>value</code>, parens. " +
+    "<code>some</code>, <code>only</code>, <code>value</code>, " +
+    "<code>min</code>, <code>max</code>, <code>exactly</code>, parens. " +
     "The reasoner runs on the current in-memory ontology — your edits are " +
-    "honoured even if you haven't saved yet."));
+    "honoured even if you haven't saved yet.",
+    {html: true}));
   content.appendChild(buildForm([exprF, typeF, reasonerF]));
 
   const runBtn  = document.createElement("button");

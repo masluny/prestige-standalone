@@ -41,6 +41,7 @@ from . import ofn, reasoner, runtime
 # Tokens
 _TK_NAME, _TK_LPAREN, _TK_RPAREN, _TK_AND, _TK_OR, _TK_NOT = range(6)
 _TK_SOME, _TK_ONLY, _TK_VALUE, _TK_DOT = 6, 7, 8, 9
+_TK_MIN, _TK_MAX, _TK_EXACTLY, _TK_NUMBER = 10, 11, 12, 13
 _TK_EOF = 99
 
 _KEYWORDS = {
@@ -50,6 +51,9 @@ _KEYWORDS = {
     "some": _TK_SOME, "SOME": _TK_SOME, "∃": _TK_SOME,
     "only": _TK_ONLY, "ONLY": _TK_ONLY, "∀": _TK_ONLY,
     "value": _TK_VALUE, "VALUE": _TK_VALUE,
+    "min":   _TK_MIN,     "MIN":     _TK_MIN,
+    "max":   _TK_MAX,     "MAX":     _TK_MAX,
+    "exactly": _TK_EXACTLY, "EXACTLY": _TK_EXACTLY,
 }
 
 
@@ -82,6 +86,15 @@ def _tokenize(text: str):
                 yield (_KEYWORDS[word], word)
             else:
                 yield (_TK_NAME, word)
+            continue
+        # Non-negative integer literal (used in cardinality restrictions:
+        # `hasSymbol max 0 SymbolRoadSign`, `hasChild min 2`, etc.)
+        if ch.isdigit():
+            j = i
+            while j < n and text[j].isdigit():
+                j += 1
+            yield (_TK_NUMBER, int(text[i:j]))
+            i = j
             continue
         raise SyntaxError("Unexpected character %r at position %d" % (ch, i))
     yield (_TK_EOF, "")
@@ -182,6 +195,7 @@ class _Parser:
             _, name = self.take()
             ent = self._lookup_entity(name)
             # Restriction: `prop some|only|value <filler>`
+            #           or `prop min|max|exactly N [filler]`
             kw = self.peek()
             if kw in (_TK_SOME, _TK_ONLY, _TK_VALUE):
                 kind = self.take()[1].lower()
@@ -193,6 +207,28 @@ class _Parser:
                     return ent.only(filler)
                 if kind == "value":
                     return ent.value(filler)
+            if kw in (_TK_MIN, _TK_MAX, _TK_EXACTLY):
+                kind = self.take()[1].lower()
+                if self.peek() != _TK_NUMBER:
+                    tok = self.tokens[self.pos][1]
+                    raise SyntaxError(
+                        "expected non-negative integer after %r, got %r"
+                        % (kind, tok))
+                n = self.take()[1]
+                # Filler is optional: `hasSymbol max 0` is unqualified,
+                # `hasSymbol max 0 SymbolRoadSign` is qualified. We peek
+                # for an atom-starter (NAME or "(") to decide. Cardinality
+                # keywords / boolean ops never start an atom so they are
+                # safe terminators here.
+                filler = None
+                if self.peek() in (_TK_NAME, _TK_LPAREN):
+                    filler = self.atom_or_restriction()
+                if kind == "min":
+                    return ent.min(n, filler) if filler is not None else ent.min(n)
+                if kind == "max":
+                    return ent.max(n, filler) if filler is not None else ent.max(n)
+                if kind == "exactly":
+                    return ent.exactly(n, filler) if filler is not None else ent.exactly(n)
             return ent
         tok = self.tokens[self.pos][1]
         raise SyntaxError("unexpected token %r" % tok)
