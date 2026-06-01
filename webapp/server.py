@@ -26,6 +26,7 @@ from core import ofn, examtools, graphview, reasoner
 from core import runtime as _runtime
 from core import dl_query as _dl
 from core import defence as _defence
+from core import owlxml as _owlxml
 
 HERE = Path(__file__).resolve().parent
 STATIC = HERE / "static"
@@ -216,11 +217,26 @@ async def api_load(file: UploadFile = File(...)):
         shutil.copy2(target, target.with_suffix(target.suffix + ".%s.uploaded.bak" % stamp))
     content = await file.read()
     target.write_bytes(content)
+
+    # Auto-convert OWL/XML -> OWL Functional Syntax if needed. Many users
+    # save from Protégé without changing the format dropdown, ending up
+    # with OWL/XML files our parser can't read. Detect + convert transparently.
+    note = ""
+    try:
+        text = content.decode("utf-8", "replace")
+        converted = _owlxml.maybe_convert(text)
+        if converted is not text:
+            target.write_text(converted, encoding="utf-8")
+            note = " (auto-converted from OWL/XML)"
+    except ValueError as exc:
+        # RDF/XML or Turtle — we don't convert those, just raise a clear msg.
+        raise HTTPException(400, str(exc))
+
     try:
         state.ont = Ontology.load(str(target))
     except Exception as exc:
         raise HTTPException(400, "Could not parse %s: %s" % (raw_name, exc))
-    return _ok("Loaded %s" % raw_name)
+    return _ok("Loaded %s%s" % (raw_name, note))
 
 
 # ---------------------------------------------------------------------------

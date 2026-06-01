@@ -38,7 +38,7 @@ hiddenimports = [
     "webapp", "webapp.server",
     "core", "core.ofn", "core.model", "core.examtools",
     "core.graphview", "core.reasoner", "core.runtime",
-    "core.dl_query", "core.defence",
+    "core.dl_query", "core.defence", "core.owlxml",
     # uvicorn internals
     "uvicorn.lifespan.on", "uvicorn.lifespan.off",
     "uvicorn.protocols.http.auto", "uvicorn.protocols.http.h11_impl",

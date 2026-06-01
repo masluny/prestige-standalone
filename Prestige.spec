@@ -49,6 +49,7 @@ hiddenimports = [
     "core.runtime",
     "core.dl_query",
     "core.defence",
+    "core.owlxml",
     # uvicorn workers / lifespans
     "uvicorn.lifespan.on",
     "uvicorn.lifespan.off",
@@ -130,12 +131,12 @@ app = BUNDLE(
     name="Prestige.app",
     icon=str(ROOT / "build_assets" / "Prestige.icns"),
     bundle_identifier="com.prestige.ontologyeditor",
-    version="1.2.0",
+    version="1.2.1",
     info_plist={
         "CFBundleName":              "Prestige",
         "CFBundleDisplayName":       "Prestige",
-        "CFBundleShortVersionString": "1.2.0",
-        "CFBundleVersion":           "1.2.0",
+        "CFBundleShortVersionString": "1.2.1",
+        "CFBundleVersion":           "1.2.1",
         "NSHighResolutionCapable":   True,
         "NSRequiresAquaSystemAppearance": False,   # respect dark mode
         "LSMinimumSystemVersion":    "11.0",
